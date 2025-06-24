@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dog Gallery</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* Custom animation for image cards */
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    .fade-in-up {
+      animation: fadeInUp 0.5s ease-out;
+    }
+  </style>
+</head>
+<body class="min-h-screen bg-gradient-to-br from-blue-100 via-purple-200 to-pink-100 p-6">
+  <div class="max-w-6xl mx-auto text-center mb-8 flex flex-col sm:flex-row items-center justify-center space-y-4 sm:space-y-0 sm:space-x-4">
+    <h1 class="text-5xl font-extrabold text-gray-800 mb-2">🐶 Dog Gallery</h1>
+    <p class="text-gray-600 mb-4">Cute pups fetched just for you!</p>
+    <div class="flex space-x-2">
+      <button id="refreshBtn" class="px-6 py-2 bg-purple-600 text-white rounded-full shadow-lg hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 transition">Refresh Gallery</button>
+      <div class="relative">
+        <select id="breedSelect" class="appearance-none px-6 py-2 bg-purple-600 text-white rounded-full shadow-lg hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 transition pr-10">
+          <option value="">All Breeds</option>
+        </select>
+        <div class="pointer-events-none absolute inset-y-0 right-3 flex items-center">
+          <svg class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 011.08 1.04l-4.25 4.25a.75.75 0 01-1.08 0L5.21 8.27a.75.75 0 01.02-1.06z" clip-rule="evenodd"/></svg>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="gallery" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+    <!-- Images will be injected here -->
+  </div>
+
+  <script>
+    const gallery = document.getElementById('gallery');
+    const refreshBtn = document.getElementById('refreshBtn');
+    const breedSelect = document.getElementById('breedSelect');
+    const COUNT = 12;
+    const DELAY_MS = 300; // Delay between fetches in milliseconds
+
+    // Utility function to pause execution
+    const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+    // Fetch list of breeds and populate select
+    async function loadBreeds() {
+      try {
+        const res = await fetch('https://dog.ceo/api/breeds/list/all');
+        const data = await res.json();
+        if (data.status === 'success') {
+          const breeds = Object.keys(data.message);
+          breeds.forEach(breed => {
+            const option = document.createElement('option');
+            option.value = breed;
+            option.innerText = breed.charAt(0).toUpperCase() + breed.slice(1);
+            breedSelect.appendChild(option);
+          });
+        }
+      } catch (err) {
+        console.error('Error loading breeds:', err);
+      }
+    }
+
+    // Fetch dog images based on selected breed
+    async function fetchDogs() {
+      const selectedBreed = breedSelect.value;
+      const apiUrl = selectedBreed
+        ? `https://dog.ceo/api/breed/${selectedBreed}/images/random`
+        : `https://dog.ceo/api/breeds/image/random`;
+
+      refreshBtn.disabled = true;
+      refreshBtn.innerText = 'Loading...';
+      gallery.innerHTML = '';
+
+      for (let i = 0; i < COUNT; i++) {
+        try {
+          const res = await fetch(apiUrl);
+          const data = await res.json();
+          if (data.status === 'success') {
+            const imgUrl = data.message;
+            const card = document.createElement('div');
+            card.className = 'bg-white rounded-2xl overflow-hidden shadow-xl hover:shadow-2xl transform hover:-translate-y-2 transition fade-in-up';
+            card.style.animationDelay = `${i * 0.05}s`;
+            card.innerHTML = `<img src="${imgUrl}" alt="Dog ${i + 1}" class="w-full h-48 object-cover" />`;
+            gallery.appendChild(card);
+          }
+        } catch (error) {
+          console.error('Error fetching image:', error);
+        }
+        await sleep(DELAY_MS);
+      }
+
+      refreshBtn.disabled = false;
+      refreshBtn.innerText = 'Refresh Gallery';
+    }
+
+    // Event listeners
+    refreshBtn.addEventListener('click', fetchDogs);
+    breedSelect.addEventListener('change', fetchDogs);
+
+    // Initial setup
+    loadBreeds().then(fetchDogs);
+  </script>
+</body>
+</html>
